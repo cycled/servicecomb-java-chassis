@@ -17,12 +17,27 @@
 
 package org.apache.servicecomb.transport.rest.client;
 
+import org.apache.servicecomb.foundation.test.scaffolding.config.ArchaiusUtils;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestTransportClientConfig {
+
+  @Before
+  public void before() {
+    ArchaiusUtils.resetConfig();
+  }
+
+  @After
+  public void after() {
+    ArchaiusUtils.resetConfig();
+  }
+
   @Test
   public void getThreadCount() {
+    ArchaiusUtils.setProperty("servicecomb.rest.client.verticle-count", 1);
     Assert.assertEquals(1, TransportClientConfig.getThreadCount());
   }
 
@@ -52,7 +67,7 @@ public class TestTransportClientConfig {
   }
 
   @Test
-  public void getUseAplnEnabled() {
+  public void getUseAlpnEnabled() {
     Assert.assertTrue(TransportClientConfig.getUseAlpn());
   }
 
@@ -61,9 +76,15 @@ public class TestTransportClientConfig {
     Assert.assertTrue(TransportClientConfig.getConnectionKeepAlive());
   }
 
-
   @Test
   public void getConnectionCompression() {
     Assert.assertFalse(TransportClientConfig.getConnectionCompression());
+  }
+
+  @Test
+  public void getMaxHeaderSize() {
+    Assert.assertEquals(8192, TransportClientConfig.getMaxHeaderSize());
+    ArchaiusUtils.setProperty("servicecomb.rest.client.maxHeaderSize", 1024);
+    Assert.assertEquals(1024, TransportClientConfig.getMaxHeaderSize());
   }
 }

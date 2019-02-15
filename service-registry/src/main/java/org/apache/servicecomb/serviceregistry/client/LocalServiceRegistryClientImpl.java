@@ -19,9 +19,6 @@ package org.apache.servicecomb.serviceregistry.client;
 
 import static org.apache.servicecomb.serviceregistry.definition.DefinitionConst.DEFAULT_APPLICATION_ID;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,16 +75,12 @@ public class LocalServiceRegistryClientImpl implements ServiceRegistryClient {
       return;
     }
 
-    File file = new File(LOCAL_REGISTRY_FILE);
-    if (!file.exists()) {
+    InputStream is = this.getClass().getClassLoader().getResourceAsStream(LOCAL_REGISTRY_FILE);
+    if (is == null) {
       return;
     }
 
-    try (InputStream is = new FileInputStream(file)) {
-      initFromData(is);
-    } catch (IOException e) {
-      LOGGER.error("can not load local registry file:" + LOCAL_REGISTRY_FILE, e);
-    }
+    initFromData(is);
   }
 
   public LocalServiceRegistryClientImpl(InputStream is) {
@@ -283,7 +276,7 @@ public class LocalServiceRegistryClientImpl implements ServiceRegistryClient {
       String strVersionRule) {
     MicroserviceInstances instances =
         findServiceInstances(selfMicroserviceId, appId, serviceName, strVersionRule, null);
-    if(instances.isMicroserviceNotExist()) {
+    if (instances.isMicroserviceNotExist()) {
       return null;
     }
     return instances.getInstancesResponse().getInstances();

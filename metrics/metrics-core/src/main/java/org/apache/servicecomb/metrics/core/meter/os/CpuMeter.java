@@ -20,16 +20,19 @@ import java.util.List;
 
 import org.apache.servicecomb.metrics.core.meter.os.cpu.OsCpuUsage;
 import org.apache.servicecomb.metrics.core.meter.os.cpu.ProcessCpuUsage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Measurement;
 
 public class CpuMeter {
+  private static final Logger LOGGER = LoggerFactory.getLogger(CpuMeter.class);
 
   // read from /proc/stat
   private OsCpuUsage allCpuUsage;
 
-  // read from /proc/{pid}/stat
+  // read from /proc/self/stat /proc/uptime
   private ProcessCpuUsage processCpuUsage;
 
   public CpuMeter(Id id) {
@@ -49,9 +52,12 @@ public class CpuMeter {
   }
 
   public void update() {
-    allCpuUsage.update();
-    processCpuUsage.setPeriodTotalTime(allCpuUsage.getPeriodTotalTime());
-    processCpuUsage.update();
+    try {
+      allCpuUsage.update();
+      processCpuUsage.update();
+    } catch (Throwable e) {
+      LOGGER.error("Failed to update usage", e);
+    }
   }
 
   public OsCpuUsage getAllCpuUsage() {

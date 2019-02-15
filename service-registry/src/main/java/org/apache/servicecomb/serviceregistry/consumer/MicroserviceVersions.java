@@ -28,7 +28,6 @@ import org.apache.servicecomb.foundation.common.utils.SPIServiceUtils;
 import org.apache.servicecomb.serviceregistry.RegistryUtils;
 import org.apache.servicecomb.serviceregistry.api.Const;
 import org.apache.servicecomb.serviceregistry.api.registry.MicroserviceInstance;
-import org.apache.servicecomb.serviceregistry.api.registry.MicroserviceInstanceStatus;
 import org.apache.servicecomb.serviceregistry.api.response.MicroserviceInstanceChangedEvent;
 import org.apache.servicecomb.serviceregistry.client.http.MicroserviceInstances;
 import org.apache.servicecomb.serviceregistry.config.ServiceRegistryConfig;
@@ -43,7 +42,7 @@ import com.google.common.eventbus.Subscribe;
 public class MicroserviceVersions {
   private static final Logger LOGGER = LoggerFactory.getLogger(MicroserviceVersions.class);
 
-  AppManager appManager;
+  protected AppManager appManager;
 
   private String appId;
 
@@ -90,6 +89,10 @@ public class MicroserviceVersions {
 
   public boolean isValidated() {
     return validated;
+  }
+
+  public AppManager getAppManager() {
+    return appManager;
   }
 
   public String getAppId() {
@@ -177,18 +180,12 @@ public class MicroserviceVersions {
       instances = mergeInstances(pulledInstances, instances);
       for (MicroserviceInstance instance : instances) {
         // ensure microserviceVersion exists
-        versions.computeIfAbsent(instance.getServiceId(), microserviceId -> {
-          MicroserviceVersion microserviceVersion =
-              appManager.getMicroserviceVersionFactory().create(microserviceName, microserviceId);
-          for (MicroserviceVersionRule microserviceVersionRule : versionRules.values()) {
-            microserviceVersionRule.addMicroserviceVersion(microserviceVersion);
-          }
-          return microserviceVersion;
-        });
+        versions.computeIfAbsent(instance.getServiceId(),
+            microserviceId -> appManager.getMicroserviceVersionFactory().create(microserviceName, microserviceId));
       }
 
       for (MicroserviceVersionRule microserviceVersionRule : versionRules.values()) {
-        microserviceVersionRule.setInstances(instances);
+        microserviceVersionRule.update(versions, instances);
       }
       revision = rev;
     }
@@ -198,7 +195,6 @@ public class MicroserviceVersions {
       List<MicroserviceInstance> inUseInstances) {
     List<MicroserviceInstance> upInstances = pulledInstances
         .stream()
-        .filter(instance -> MicroserviceInstanceStatus.UP.equals(instance.getStatus()))
         .collect(Collectors.toList());
     if (upInstances.isEmpty() && inUseInstances != null && ServiceRegistryConfig.INSTANCE
         .isEmptyInstanceProtectionEnabled()) {
@@ -235,10 +231,7 @@ public class MicroserviceVersions {
 
     MicroserviceVersionRule microserviceVersionRule =
         new MicroserviceVersionRule(appId, microserviceName, strVersionRule);
-    for (MicroserviceVersion microserviceVersion : versions.values()) {
-      microserviceVersionRule.addMicroserviceVersion(microserviceVersion);
-    }
-    microserviceVersionRule.setInstances(instances);
+    microserviceVersionRule.update(versions, instances);
     return microserviceVersionRule;
   }
 

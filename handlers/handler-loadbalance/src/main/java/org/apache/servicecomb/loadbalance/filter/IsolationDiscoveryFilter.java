@@ -90,7 +90,15 @@ public class IsolationDiscoveryFilter implements DiscoveryFilter {
         filteredServers.put(key, instance);
       }
     }
-    DiscoveryTreeNode child = new DiscoveryTreeNode().data(filteredServers);
+
+    DiscoveryTreeNode child = new DiscoveryTreeNode();
+    if (filteredServers.isEmpty() && DynamicPropertyFactory.getInstance()
+        .getBooleanProperty("servicecomb.loadbalance.filter.isolation.emptyInstanceProtectionEnabled", false).get()) {
+      LOGGER.warn("All servers have been isolated, allow one of them based on load balance rule.");
+      child.data(instances);
+    } else {
+      child.data(filteredServers);
+    }
     parent.child("filterred", child);
     return child;
   }
@@ -129,7 +137,7 @@ public class IsolationDiscoveryFilter implements DiscoveryFilter {
       if (!serverStats.isIsolated()) {
         ServiceCombLoadBalancerStats.INSTANCE.markIsolated(server, true);
         eventBus.post(
-            new IsolationServerEvent(invocation.getMicroserviceName(), instance, serverStats,
+            new IsolationServerEvent(invocation, instance, serverStats,
                 settings, Type.OPEN));
         LOGGER.warn("Isolate service {}'s instance {}.", invocation.getMicroserviceName(),
             instance.getInstanceId());
@@ -143,7 +151,7 @@ public class IsolationDiscoveryFilter implements DiscoveryFilter {
         return false;
       }
       ServiceCombLoadBalancerStats.INSTANCE.markIsolated(server, false);
-      eventBus.post(new IsolationServerEvent(invocation.getMicroserviceName(), instance, serverStats,
+      eventBus.post(new IsolationServerEvent(invocation, instance, serverStats,
           settings, Type.CLOSE));
       LOGGER.warn("Recover service {}'s instance {} from isolation.", invocation.getMicroserviceName(),
           instance.getInstanceId());

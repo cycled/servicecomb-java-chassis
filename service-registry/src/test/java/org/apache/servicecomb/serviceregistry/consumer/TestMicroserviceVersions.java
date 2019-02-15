@@ -30,13 +30,11 @@ import org.apache.servicecomb.serviceregistry.api.Const;
 import org.apache.servicecomb.serviceregistry.api.MicroserviceKey;
 import org.apache.servicecomb.serviceregistry.api.registry.Microservice;
 import org.apache.servicecomb.serviceregistry.api.registry.MicroserviceInstance;
-import org.apache.servicecomb.serviceregistry.api.registry.MicroserviceInstanceStatus;
 import org.apache.servicecomb.serviceregistry.api.response.FindInstancesResponse;
 import org.apache.servicecomb.serviceregistry.api.response.MicroserviceInstanceChangedEvent;
 import org.apache.servicecomb.serviceregistry.client.http.MicroserviceInstances;
 import org.apache.servicecomb.serviceregistry.task.event.MicroserviceNotExistEvent;
 import org.apache.servicecomb.serviceregistry.task.event.PullMicroserviceVersionsInstancesEvent;
-import org.apache.servicecomb.serviceregistry.version.Version;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -255,42 +253,17 @@ public class TestMicroserviceVersions {
   }
 
   @Test
-  public void setInstances_selectUp() {
-    String microserviceId = "1";
-
-    createMicroservice(microserviceId);
-    createInstance(microserviceId);
-    createMicroserviceInstances();
-
-    instances.get(0).setStatus(MicroserviceInstanceStatus.DOWN);
-    Deencapsulation.invoke(microserviceVersions, "setInstances", instances, "0");
-
-    List<?> resultInstances = Deencapsulation.getField(microserviceVersions, "instances");
-    Assert.assertTrue(resultInstances.isEmpty());
-  }
-
-  @Test
   public void getOrCreateMicroserviceVersionRule() {
     MicroserviceVersionRule microserviceVersionRule = microserviceVersions.getOrCreateMicroserviceVersionRule("1.0.0");
     Assert.assertSame(microserviceVersionRule, microserviceVersions.getOrCreateMicroserviceVersionRule("1.0.0"));
   }
 
   @Test
-  public void createAndInitMicroserviceVersionRule(@Mocked MicroserviceVersion microserviceVersion) {
+  public void createAndInitMicroserviceVersionRule() {
     String microserviceId = "1";
     createMicroservice(microserviceId);
 
-    Version version = new Version("1.0.0");
-
-    new Expectations() {
-      {
-        microserviceVersion.getVersion();
-        result = version;
-        microserviceVersion.getMicroservice();
-        result = microservices.get(microserviceId);
-      }
-    };
-
+    MicroserviceVersion microserviceVersion = new MicroserviceVersion(microservices.get(microserviceId));
     microserviceVersions.getVersions().put(microserviceId, microserviceVersion);
 
     MicroserviceVersionRule microserviceVersionRule =
